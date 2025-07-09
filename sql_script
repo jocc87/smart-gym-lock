@@ -1,0 +1,22 @@
+CREATE OR REPLACE FUNCTION create_right_on_order()
+RETURNS TRIGGER AS $$
+DECLARE
+    valid_from TIMESTAMP := NOW();
+    valid_until TIMESTAMP := NOW() + INTERVAL '30 days';
+BEGIN
+    -- Csak akkor hozzunk létre jogot, ha az order 'paid'
+    IF NEW.status = 'paid' THEN
+        INSERT INTO rights (user_id, lock_id, access_type, access_value, valid_from, valid_until)
+        VALUES (
+            NEW.user_id,
+            5716380,                      -- vagy ha LOCK_ID fix
+            'passcode',
+            NEW.passcode,
+            valid_from,
+            valid_until
+        );
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;

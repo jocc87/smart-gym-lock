@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Belépési jogosultság aktiválás</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <section id="order-section">
+    <h2>Belépési jogosultság aktiválása</h2>
+    <form id="order-form">
+      <div class="form-group">
+        <label for="order-username">Felhasználónév:</label>
+        <input type="text" id="order-username" required>
+      </div>
+
+      <div class="form-group">
+        <label for="order-passcode">Kód (4 számjegy):</label>
+        <input type="text" id="order-passcode" pattern="\d{4}" maxlength="4" required>
+      </div>
+
+      <button type="submit">Aktiválás</button>
+    </form>
+
+    <div id="order-response" class="response-box"></div>
+  </section>
+
+  <hr>
+
+  <section id="stats-section">
+    <h2>Statisztika megtekintése</h2>
+    <button id="load-stats">Statisztika betöltése</button>
+    <div id="user-stats" style="margin-top: 1em;"></div>
+  </section>
+
+  <script>
+    // Aktiválás
+    document.getElementById("order-form").addEventListener("submit", async function (event) {
+      event.preventDefault();
+
+      const username = document.getElementById("order-username").value;
+      const passcode = document.getElementById("order-passcode").value;
+      const responseBox = document.getElementById("order-response");
+      responseBox.innerHTML = "";
+
+      try {
+        const res = await fetch("/api/order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, passcode })
+        });
+
+        const result = await res.json();
+
+        if (res.ok) {
+          responseBox.innerHTML = `<p style="color:green;">✅ ${result.message} (Rendelés ID: ${result.order_id})</p>`;
+        } else {
+          responseBox.innerHTML = `<p style="color:red;">❌ ${result.error || 'Ismeretlen hiba történt.'}</p>`;
+        }
+      } catch (err) {
+        console.error("❌ API hiba:", err);
+        responseBox.innerHTML = `<p style="color:red;">❌ Hálózati hiba történt.</p>`;
+      }
+    });
+
+    // Statisztika betöltése
+    document.getElementById("load-stats").addEventListener("click", async function () {
+      const statsBox = document.getElementById("user-stats");
+      statsBox.innerHTML = "Betöltés...";
+
+      try {
+        const res = await fetch("/api/user_stats");
+        const data = await res.json();
+
+        if (Array.isArray(data)) {
+          let html = `<table><tr><th>Felhasználó</th><th>Nyitások</th><th>Sikeres</th><th>Sikertelen</th></tr>`;
+          for (const row of data) {
+            html += `<tr><td>${row.username}</td><td>${row.nyitasok}</td><td>${row.sikeres}</td><td>${row.sikertelen}</td></tr>`;
+          }
+          html += `</table>`;
+          statsBox.innerHTML = html;
+        } else {
+          statsBox.innerHTML = `<p style="color:red;">❌ Hiba a statisztika lekérésekor</p>`;
+        }
+      } catch (err) {
+        console.error("❌ Hiba a statisztika lekérésénél:", err);
+        statsBox.innerHTML = `<p style="color:red;">❌ Statisztika lekérési hiba</p>`;
+      }
+    });
+  </script>
+  <img src="/static/top_users.png" alt="Top users" width="100%">
+  <img src="/static/peak_hours.png" alt="Peak hours" width="100%">
+
+</body>
+</html>
